@@ -57,3 +57,8 @@
   retries: "{{ retry_count | default(20) }}"
   delay: 10
   changed_when: false
+
+- name: Set up log rotation
+  copy:
+    src: ../../../files/k3s.logrotate
+    dest: /etc/logrotate.d/k3s

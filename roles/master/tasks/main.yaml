@@ -82,3 +82,8 @@
   copy:
     content: "{{ k3s_leader_vars.ansible_user }}@{{ k3s_leader }}"
     dest: ".secrets/k3s-leader"
+
+- name: Set up log rotation
+  copy:
+    src: ../../../files/k3s.logrotate
+    dest: /etc/logrotate.d/k3s
