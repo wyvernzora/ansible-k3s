@@ -1,0 +1,4 @@
+---
+k3s_leader_vars: "{{ hostvars[ansible_play_hosts_all[0]] }}"
+k3s_leader: "{{ hostvars[ansible_play_hosts_all[0]]['ansible_host'] | default(ansible_play_hosts_all[0]) }}"
+k3s_token: "{{ lookup('password', '.secrets/k3s-token chars=ascii_letters,digits length=50') }}"

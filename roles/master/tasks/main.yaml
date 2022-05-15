@@ -1,0 +1,84 @@
+---
+
+- name: Create K3S config directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 755
+  with_items:
+    - /etc/rancher/k3s
+    - /var/lib/rancher/k3s/server/manifests
+
+- name: Write K3s config file
+  template:
+    src: k3s.config.j2
+    dest: /etc/rancher/k3s/config.yaml
+    owner: root
+    group: root
+    mode: 644
+
+- name: Write K3s env file
+  template:
+    src: ../../../templates/k3s.env.j2
+    dest: /etc/rancher/k3s/k3s.env
+    owner: root
+    group: root
+    mode: 600
+  vars:
+    envars:
+      K3S_TOKEN: '{{ k3s_token }}'
+
+- name: Create K3s service
+  template:
+    src: ../../../templates/k3s.service.j2
+    dest: /etc/init.d/k3s
+    owner: root
+    group: root
+    mode: 755
+  vars:
+    k3s_command: server
+
+- name: Start K3S service
+  service:
+    name: k3s
+    enabled: yes
+    state: started
+    runlevel: default
+
+- name: Wait for master nodes to join cluster
+  run_once: yes
+  delegate_to: "{{ k3s_leader }}"
+  remote_user: "{{ k3s_leader_vars.ansible_user }}"
+  command:
+    cmd: k3s kubectl get nodes -l "node-role.kubernetes.io/master=true" -o=jsonpath="{.items[*].metadata.name}"
+  register: __masters
+  until: __masters.rc == 0 and (__masters.stdout.split() | length) == (groups['master'] | length)
+  retries: "{{ retry_count | default(20) }}"
+  delay: 10
+  changed_when: false
+
+- name: Read node-token from master
+  run_once: yes
+  delegate_to: "{{ k3s_leader }}"
+  remote_user: "{{ k3s_leader_vars.ansible_user }}"
+  slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  register: node_token
+
+- name: Store node-token
+  become: false
+  run_once: yes
+  delegate_to: localhost
+  copy:
+    content: "{{ node_token.content | b64decode | regex_replace('\n', '') }}"
+    dest: ".secrets/node-token"
+
+- name: Store K3s leader IP
+  become: false
+  run_once: yes
+  delegate_to: localhost
+  copy:
+    content: "{{ k3s_leader_vars.ansible_user }}@{{ k3s_leader }}"
+    dest: ".secrets/k3s-leader"
