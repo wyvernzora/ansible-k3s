@@ -1,0 +1,4 @@
+---
+k3s_leader_user: "{{ lookup('file', '.secrets/k3s-leader').split('@')[0] }}"
+k3s_leader: "{{ lookup('file', '.secrets/k3s-leader').split('@')[1] }}"
+node_token: "{{ lookup('file', '.secrets/node-token') }}"
