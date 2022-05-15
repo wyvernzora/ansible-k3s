@@ -1,4 +1,9 @@
 ---
+- name: Load K3s leader node info
+  become: no
+  delegate_to: localhost
+  include_vars:
+    file: .state/k3s-leader.yaml
 
 - name: Create K3S config directories
   file:
@@ -39,6 +44,11 @@
   vars:
     k3s_command: agent
 
+- name: Set up log rotation
+  copy:
+    src: ../../../files/k3s.logrotate
+    dest: /etc/logrotate.d/k3s
+
 - name: Start K3S service
   service:
     name: k3s
@@ -48,17 +58,12 @@
 
 - name: Wait for worker nodes to join cluster
   run_once: yes
-  delegate_to: "{{ k3s_leader }}"
-  remote_user: "{{ k3s_leader_user }}"
+  delegate_to: "{{ hostvars[inventory_hostname].k3s_leader.host }}"
+  remote_user: "{{ hostvars[inventory_hostname].k3s_leader.user }}"
   command:
     cmd: k3s kubectl get nodes -l "!node-role.kubernetes.io/master" -o=jsonpath="{.items[*].metadata.name}"
   register: __workers
-  until: __workers.rc == 0 and (__workers.stdout.split() | length) == (groups['worker'] | length)
+  until: __workers.rc == 0 and (__workers.stdout.split() | length) == (ansible_play_hosts_all | length)
   retries: "{{ retry_count | default(20) }}"
   delay: 10
   changed_when: false
-
-- name: Set up log rotation
-  copy:
-    src: ../../../files/k3s.logrotate
-    dest: /etc/logrotate.d/k3s
