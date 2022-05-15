@@ -17,12 +17,6 @@
     k3s_version: "{{ __k3s_releases.content | from_json | json_query('data[?id==`stable`].latest | [0]') }}"
   when: __k3s_releases.content is defined
 
-- name: Download install script
-  get_url:
-    url: https://get.k3s.io
-    dest: /tmp/install-k3s.sh
-    mode: 0755
-
 - name: Download K3S binary {{ k3s_version }} x64
   get_url:
     url: https://github.com/k3s-io/k3s/releases/download/{{ k3s_version }}/k3s
