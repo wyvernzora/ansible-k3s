@@ -53,7 +53,7 @@ spec:
         - name: vip_retryperiod
           value: "1"
         - name: address
-          value: {{ kube_vip_address }}
+          value: {{ control_plane_vip }}
         image: ghcr.io/kube-vip/kube-vip:{{ kube_vip_version }}
         imagePullPolicy: Always
         name: kube-vip

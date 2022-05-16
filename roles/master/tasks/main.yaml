@@ -1,5 +1,17 @@
 ---
 
+- name: Disable traefik and servicelb if using kube-vip
+  set_fact:
+    k3s_extra_args: '{{ k3s_extra_args | default("") }} --no-deploy traefik --no-deploy servicelb'
+  when: 
+    - '"wyvernzora.k3s.kubevip" in ansible_play_role_names'
+
+- name: Set TLS SAN if using kubevip for control plane
+  set_fact:
+    k3s_extra_args: '{{ k3s_extra_args | default("") }} --tls-san {{ control_plane_vip }}'
+  when:
+    - control_plane_vip is defined
+
 - name: Create K3S config directories
   file:
     path: "{{ item }}"
